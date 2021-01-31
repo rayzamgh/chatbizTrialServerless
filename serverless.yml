@@ -1,16 +1,19 @@
+org: mahen
+app: testing-serverless
 service: sls-whatsapp
 plugins:
   - serverless-offline
   - serverless-webpack
   - serverless-dotenv-plugin
+  - serverless-plugin-include-dependencies
 
-frameworkVersion: '>=1.5.3 <2.0.0'
+frameworkVersion: '>=1.5.3'
 
 provider:
   name: aws
   runtime: nodejs10.x
   stage: ${opt:stage, 'dev'}
-  region: us-west-2
+  region: us-east-2
   logRetentionInDays: 30
   stackTags:
     Environment: ${self:provider.stage}
@@ -26,8 +29,18 @@ provider:
 
 functions:
   processMessage:
-    handler: src/handlers/processMessage.sendMessage
+    handler: 'src/handlers/processMessage.receiveMessage'
+    package:
+      include:
+        - src/controller/botResponse.js
+        - src/utils/botDictionary.js
+        - src/utils/responselist.json
     events:
-      - schedule:
-          rate: rate(1 day)
-          enabled: true
+      - http:
+          integration: lambda
+          path: webhook
+          method: post
+          cors: true
+          response:
+            headers:
+              Content-Type: "'text/xml; charset=utf-8'"
